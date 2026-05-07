@@ -12,5 +12,5 @@ struct DeauthPkt {
 
     DeauthPkt(pcap_t* pcap, const Mac& apMac, const Mac& stMac, bool authMode);
 
-    std::vector<uint8_t> createDeauth(const Mac& stc, const Mac& dst, const Mac& bssid, uint16_t seq);
+    std::vector<uint8_t> createDeauth(const Mac& addr_1, const Mac& addr_2, const Mac& addr_3, uint16_t seq);
 };

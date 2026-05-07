@@ -7,7 +7,8 @@ struct RadiotapHdr {
     uint8_t pad;
     uint16_t len;
     uint32_t pf;
-};
-#pragma pack(pop)
 
-RadiotapHdr createMinimalRt();
+    void initMinimalRt();
+};
+typedef RadiotapHdr* PRadiotapHdr;
+#pragma pack(pop)

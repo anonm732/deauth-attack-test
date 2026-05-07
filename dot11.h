@@ -24,5 +24,5 @@ struct Dot11Deauth {
     Dot11MgmtHdr hdr;
     uint16_t reason;
 };
-
+typedef Dot11Deauth* PDot11Deauth;
 #pragma pack(pop)
